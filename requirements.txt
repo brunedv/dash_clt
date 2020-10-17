@@ -1,0 +1,6 @@
+numpy
+scipy
+dash
+plotly
+dash_bootstrap_components
+flask
