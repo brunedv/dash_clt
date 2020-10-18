@@ -3,17 +3,20 @@ import dash_bootstrap_components as dbc
 import dash_core_components as dcc
 import dash_html_components as html
 import numpy as np
+import pandas as pd
 import plotly.figure_factory as ff
 import plotly.graph_objects as go
 from dash.dependencies import ALL, Input, Output, State
 from flask import Flask
 from plotly.subplots import make_subplots
 from scipy.stats import norm
+import plotly.express as px
 
 param_dict = {
     "normal": ["mean", "variance"],
     "uniform": ["min", "max"],
     "beta": ["alpha", "beta"],
+    "binomial": ["n", "p"],
 }
 
 server = Flask(__name__)
@@ -26,10 +29,7 @@ controls = dbc.Card(
                 dbc.Label("Distribution Law"),
                 dcc.Dropdown(
                     id="Distribution-Law",
-                    options=[
-                        {"label": col, "value": col}
-                        for col in ["uniform", "normal", "beta"]
-                    ],
+                    options=[{"label": col, "value": col} for col in param_dict.keys()],
                     value="uniform",
                 ),
             ]
@@ -139,14 +139,24 @@ def generate_graph(n_clicks, n_simulation, sample_size, distribution, values):
             a = values[0]
             b = values[1]
             sigma = np.sqrt(((a * b) / ((a + b) ** 2 * (a + b + 1))) / sample_size)
+        elif distribution == "binomial":
+            x_tot = np.random.binomial(
+                n=values[0], p=values[1], size=(n_simulation, sample_size)
+            )
+            mu = values[0] * values[1]
+            sigma = np.sqrt(values[0] * values[1] * (1 - values[1]) / sample_size)
 
         x = np.mean(x_tot, axis=1)
         max_x, min_x = np.max(x), np.min(x)
         bin_size = (
             (max_x - min_x) * 10 / len(x)
         )  # 3.49*np.std(x)*np.power(sample_size,-1/3)
-        fig = ff.create_distplot(
-            [x], bin_size=[bin_size], group_labels=[distribution], curve_type="kde"
+        df = pd.DataFrame({distribution: x})
+        fig = px.histogram(
+            df,
+            x=distribution,
+            marginal="box",
+            histnorm="probability density",  # or violin, rug
         )
         print(x.shape)
         dist = norm(mu, sigma)
@@ -158,10 +168,10 @@ def generate_graph(n_clicks, n_simulation, sample_size, distribution, values):
         )
         fig.update_layout(
             height=600,
-            title="Mean: {0}, CI 95%: [{1}, {2}] ".format(
-                np.round(mu, 2),
-                np.round(mu - 2 * sigma, 2),
-                np.round(mu + 2 * sigma, 2),
+            title=" Mean: {0}, CI 95%: [{1}, {2}] ".format(
+                np.round(mu, 5),
+                np.round(mu - 2 * sigma, 5),
+                np.round(mu + 2 * sigma, 5),
             ),
         )
         return fig, "Sample size (n): {0}".format(sample_size)
