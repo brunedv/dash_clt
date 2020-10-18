@@ -46,21 +46,19 @@ controls = dbc.Card(
                                 type="number",
                                 debounce=True,
                                 placeholder="N",
-                                value=100,
+                                value=500,
                             )
                         ),
-                        dbc.Row(dbc.Label("Sample size (n): ")),
+                        dbc.Row(
+                            dbc.Label(id="text_n", children="Sample size (n): 100")
+                        ),
                         dcc.Slider(
                             id="sample_size",
                             min=0,
-                            max=1000,
-                            value=500,
-                            marks={
-                                10: "10",
-                                100: "100",
-                                500: "500",
-                                1000: "1000",
-                            },
+                            max=4,
+                            value=2,
+                            step=0.01,
+                            marks={0: "1", 1: "10", 2: "100", 3: "1000", 4: "10000"},
                         ),
                     ]
                 ),
@@ -107,7 +105,7 @@ def generate_param_box(distribution):
 
 
 @app.callback(
-    Output("CLT", "figure"),
+    [Output("CLT", "figure"), Output("text_n", "children")],
     [
         Input("launch_simu", "n_clicks"),
         Input("n_simulation", "value"),
@@ -119,7 +117,8 @@ def generate_param_box(distribution):
     ],
 )
 def generate_graph(n_clicks, n_simulation, sample_size, distribution, values):
-    if len(values) != 0:
+    sample_size = int(10 ** (sample_size))
+    if (len(values) != 0) & (None not in values):
         if distribution == "uniform":
             x_tot = np.random.uniform(
                 low=values[0], high=values[1], size=(n_simulation, sample_size)
@@ -147,16 +146,28 @@ def generate_graph(n_clicks, n_simulation, sample_size, distribution, values):
             (max_x - min_x) * 10 / len(x)
         )  # 3.49*np.std(x)*np.power(sample_size,-1/3)
         fig = ff.create_distplot(
-            [x], bin_size=[bin_size], group_labels=[distribution], curve_type="normal"
+            [x], bin_size=[bin_size], group_labels=[distribution], curve_type="kde"
         )
         print(x.shape)
         dist = norm(mu, sigma)
         x_pdf = np.linspace(dist.ppf(0.01), dist.ppf(0.99), 100)
-        fig.add_trace(go.Scatter(x=x_pdf, y=dist.pdf(x_pdf), name="CLT"))
-        return fig
+        fig.add_trace(
+            go.Scatter(
+                x=x_pdf, y=dist.pdf(x_pdf), name="CLT", line=dict(color="red", width=4)
+            )
+        )
+        fig.update_layout(
+            height=600,
+            title="Mean: {0}, CI 95%: [{1}, {2}] ".format(
+                np.round(mu, 2),
+                np.round(mu - 2 * sigma, 2),
+                np.round(mu + 2 * sigma, 2),
+            ),
+        )
+        return fig, "Sample size (n): {0}".format(sample_size)
     else:
-        return []
+        return [], "Sample size (n): {0}".format(sample_size)
 
 
 if __name__ == "__main__":
-    server.run(host="0.0.0.0")
+    server.run(debug=True, host="0.0.0.0")
