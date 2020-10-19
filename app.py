@@ -174,6 +174,9 @@ def generate_graph(n_clicks, n_simulation, sample_size, distribution, values):
                 np.round(mu + 2 * sigma, 5),
             ),
         )
+        if sample_size > 10:
+            dist_10 = norm(mu, sigma * np.sqrt(sample_size / 10))
+            fig.update_xaxes(range=[dist_10.ppf(0.01), dist_10.ppf(0.99)])
         return fig, "Sample size (n): {0}".format(sample_size)
     else:
         return [], "Sample size (n): {0}".format(sample_size)
