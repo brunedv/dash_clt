@@ -13,7 +13,7 @@ from scipy.stats import norm
 import plotly.express as px
 
 param_dict = {
-    "normal": ["mean", "variance"],
+    "normal": ["mean", "std"],
     "uniform": ["min", "max"],
     "beta": ["alpha", "beta"],
     "binomial": ["n", "p"],
