@@ -1,5 +1,5 @@
 # dash_clt
-Dash app to visualize CLT
+Dash app to visualize Central lImit Theorem (CLT)
 
 Deployed on heroku: https://dash-clt.herokuapp.com/. 
  
